@@ -1,0 +1,42 @@
+---
+title: 'STA 380 Homework 2: Dalton, Haines, Jansen, Karnes'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Flights at ABIA
+* We know we can ignore the variable 'Year', as all the values for Year will be 2008. 
+* We want the information we draw from this data set to be useful, thus we will investigate which values of the variables typically result in the most delays, and vice versa. 
+
+
+```{r}
+abia = read.csv('ABIA.csv')
+#First Looking a the Day of the Week which is the best/worst day to fly
+#best.day = 
+#worst.day = 
+
+```
+
+
+## Author attribution
+
+
+
+```{r}
+
+
+```
+
+
+## Practice with association rule mining
+
+
+
+```{r}
+
+
+```
+
