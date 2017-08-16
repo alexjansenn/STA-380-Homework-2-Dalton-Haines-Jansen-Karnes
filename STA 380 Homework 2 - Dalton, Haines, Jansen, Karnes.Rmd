@@ -8,17 +8,92 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Flights at ABIA
-* We know we can ignore the variable 'Year', as all the values for Year will be 2008. 
-* We want the information we draw from this data set to be useful, thus we will investigate which values of the variables typically result in the most delays, and vice versa. 
-
+* We know we can ignore the variable 'Year', as all the values for Year will be 2008 
+* We want to investigate arrival delays considering delays (ideally we can predict how much later we would arrive if we know how delayed our flight is)
+* According to the Federal Aviation Administration a flight is considered delayed if it's departure is 15 minutes later than its scheduled time - this is the standard we will use when analyzing the data
 
 ```{r}
 abia = read.csv('ABIA.csv')
-#First Looking a the Day of the Week which is the best/worst day to fly
-#best.day = 
-#worst.day = 
+
+#Separating the data into delayed and ontime flights
+delayed = abia[abia$DepDelay >=15, ]
+on.time = abia[abia$DepDelay < 15, ]
+```
+
+We want to check a couple aspects of the data now that we have it separated between delayed and ontime: 
+
+* Does the distance being travelled affect the arrival delay?
+* How does strongly does departure delay affect arrival delay?
+* Which airline has the worst departure delay?
+
+
+Looking first at distance travelled and its effect on arrival delay:
+
+```{r}
+delay.dist = plot(delayed$Distance,delayed$ArrDelay, xlab = 'Distance in Miles', ylab = 'Arrival Delay', main = 'Delayed Flights: Distance vs Arrival Delay')
+
+
+ontime.dist = plot(on.time$Distance, on.time$ArrDelay, xlab = 'Distance in Miles', ylab = 'Arrival Delay', main = 'Ontime 
+Flights: Distance vs Arrival Delay')
 
 ```
+
+
+
+From these scatter plots, we can see that the range of Arrival Delay for ontime flights has more values below 0 (meaning the flight arrived early) than the delayed flights. However, distance does not seem to affect the arrival delay for both delayed and ontime flights. The scatter plots look almost uniform, meaning that distance is no real indication of an arrival delay. 
+
+We can also see by comparing the two scatterplots that departure delay tends to affect arrival delay as a majority of the flights either arrive ontime or much later. It is much rarer to see a flight arrive early given it has been delayed.
+
+We will calculate the bayesian probability below to put numerical backing to our claims from the graphs. 
+
+```{r}
+#Probability a flight arrives early given it has been delayed
+#probability early and delayed / probability delayed
+early.and.delayed = nrow(delayed[delayed$ArrDelay<0,])/nrow(abia)
+prob.delayed = nrow(delayed)/nrow(abia)
+early.given.delayed = early.and.delayed/prob.delayed
+
+#Probability a flight arrives early given it is ontime
+#probability early and on time / probability ontime
+early.and.ontime = nrow(on.time[on.time$ArrDelay<0, ])/nrow(abia)
+prob.ontime = nrow(on.time)/nrow(abia)
+early.given.ontime = early.and.ontime/prob.ontime
+
+```
+* The probability of arriving early given your flight was delayed is: `r early.given.delayed`
+* The proability of arriving early given your flight was ontime is: `r early.given.ontime`
+
+This makes logical sense, as it is more difficult to arrive early if you departed late. 
+
+
+Looking at how departure delay affects arrival delay:
+
+```{r}
+#mean arrival delay for delayed flights
+
+arrival.delay = delayed$ArrDelay
+#omitting NA values
+delay.arrival = na.omit(arrival.delay)
+average.arrival.delay = mean(delay.arrival)
+
+#For comparison - what is the mean arrival delay for ontime flights
+ontime.arrival = on.time$ArrDelay
+#omitting NA values
+on.timearrival = na.omit(ontime.arrival)
+average.ontime.arrival = mean(on.timearrival)
+
+```
+* The average arrival delay in minutes of delayed flights are: `r average.arrival.delay`
+* The average arrival delay in minutes of ontime flights are: `r average.ontime.arrival`
+
+So now that we know the average arrival delay of a delayed flight, can we discern the typical arrival delay if we know how delayed a flight is?
+```{r}
+#Plot of departure delay and arrival delay
+the.plot = plot(delayed$DepDelay, delayed$ArrDelay, xlab ='Departure Delay in minutes', ylab = 'Arrival Delay in minutes', main = 'Delayed Flights: Departure Delay vs. Arrival Delay')
+
+```
+
+From the scatter plot above we can see a positive correlation between departure delay and arrival delay. Once again, this makes logical sense as the later you are, the harder it is to arrive on time (or close to on time).
 
 
 ## Author attribution
