@@ -183,4 +183,5 @@ subrules <- head(sort(rules, by = 'lift'), 5)
 ```{R}
 plot(subrules, method = 'graph')
 plot(subrules, method = 'matrix')
+plot(sample(rules, 25), method="graph", control=list(layout=igraph::in_circle()))
 ```
