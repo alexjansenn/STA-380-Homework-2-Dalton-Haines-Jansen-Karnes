@@ -91,6 +91,7 @@ while(count<2500){
   count = count+50
   i=i+1
 }
+#train_mat=train_mat+smooth_count
 colnames(train_mat) = colnames(X)
 train_mat = t(train_mat)
 filenames = list.dirs(path = 'C50train/', full.names = FALSE, recursive = TRUE)
@@ -99,19 +100,24 @@ colnames(train_mat) = filenames
 test_mat = list.files(path = 'C50test/',pattern = ".txt$",full.names = FALSE, recursive = TRUE)
 #test_mat = t(Y)
 rownames(Y) = test_mat
+#smooth_count_test=1/nrow(Y)
+Y=Y+Y
 Y <- Y/rowSums(Y, na.rm = FALSE)
 Y = t(Y)
+tmp1 <- match(rownames(train_mat), rownames(Y) )
+st3 <- cbind( train_mat, Y[tmp1,] )
+smooth_count_combo=1/nrow(st3)
+st3=st3+smooth_count_combo
+c50_train = st3[,1:50]
+c50_test = st3[,51:2550]
+cname = colnames(st3)[1:10]
+f <- as.formula(paste("'AaronPressman/421829newsML.txt'~", paste(sprintf("`%s`", cname), collapse="+")))
+ 
 
 
+fit <- randomForest(f,data=st3, importance=TRUE, ntree=2000)
 
-fit <- randomForest(as.factor(Survived) ~ Pclass + Sex + Age + SibSp + Parch + Fare +
-                      Embarked + Title + FamilySize + FamilyID2,
-                    data=train, 
-                    importance=TRUE, 
-                    ntree=2000)
 
-AP_train = X[1:45,]
-AC_train = X[51:95,]
 
 # AP's multinomial probability vector
 # Notice the smoothing factor
