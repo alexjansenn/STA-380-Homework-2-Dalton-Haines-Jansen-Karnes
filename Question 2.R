@@ -1,28 +1,33 @@
+options(stringsAsFactors = FALSE)
 library(tm)
 library(foreach)
 library(randomForest)
+library(gdata)
+library(naivebayes)
+library(magrittr)
+library(class)
+library(caret)
 setwd('/Users/Reeddalton/Documents/GitHub/NBA-Shots-2014-2015/STA-380-Homework-2-Dalton-Haines-Jansen-Karnes/ReutersC50')
-# Remember to source in the "reader" wrapper function
-# it's stored as a Github gist at:
-# https://gist.github.com/jgscott/28d9d1287a0c3c1477e2113f6758d5ff
 readerPlain = function(fname){
   readPlain(elem=list(content=readLines(fname)), 
             id=fname, language='en') }
 ## Rolling two directories together into a single corpus
+
 author_dirs_train = Sys.glob('C50train/*')
 author_dirs_test = Sys.glob('C50test/*')
+anames = list.dirs("C50train", full.names = FALSE)[-1]
 file_list_test = NULL
 labels_test = NULL
 file_list_train = NULL
 labels_train = NULL
 for(author in author_dirs_train) {
-	author_name_train = substring(author, first=29)
-	files_to_add_train = Sys.glob(paste0(author, '/*.txt'))
-	file_list_train = append(file_list_train, files_to_add_train)
-	labels = append(labels, rep(author_name_train, length(files_to_add_train)))
+  author_name_train = substring(author, first=10)
+  files_to_add_train = Sys.glob(paste0(author, '/*.txt'))
+  file_list_train = append(file_list_train, files_to_add_train)
+  labels = append(labels, rep(author_name_train, length(files_to_add_train)))
 }
 for(author in author_dirs_test) {
-  author_name_test = substring(author, first=29)
+  author_name_test = substring(author, first=10)
   files_to_add_test = Sys.glob(paste0(author, '/*.txt'))
   file_list_test = append(file_list_test, files_to_add_test)
   labels = append(labels, rep(author_name_test, length(files_to_add_test)))
@@ -36,6 +41,7 @@ names(all_docs_train) = sub('.txt', '', names(all_docs_train))
 all_docs_test = lapply(file_list_test, readerPlain) 
 names(all_docs_test) = file_list_test
 names(all_docs_test) = sub('.txt', '', names(all_docs_test))
+
 
 
 my_corpus_train = Corpus(VectorSource(all_docs_train))
@@ -58,89 +64,69 @@ my_corpus_test = tm_map(my_corpus_test, content_transformer(removeWords), stopwo
 
 
 DTM_train = DocumentTermMatrix(my_corpus_train)
+DTM_train = removeSparseTerms(DTM_train, 0.95)
 DTM_train # some basic summary statistics
+## removing sparse terms. 
 
 DTM_test = DocumentTermMatrix(my_corpus_test)
-DTM_test
-class(DTM_test)  # a special kind of sparse matrix format
-
-## You can inspect its entries...
-inspect(DTM[1:2500,1:50])
-DTM_train = removeSparseTerms(DTM_train, 0.975)
-DTM
+DTM_test =removeSparseTerms(DTM_test, 0.95)
 
 # Now a dense matrix
 X = as.matrix(DTM_train)
 row.names(X) = file_list_train
+X <- X/rowSums(X, na.rm = FALSE)
+
 
 Y = as.matrix(DTM_test)
 row.names(Y) = file_list_test
-# Naive Bayes: the training sets for the two authors
-
-
-num_words = dim(X)[2]
-train_mat=matrix(0,50,num_words)
-smooth_count=1/nrow(X)
-count=1
-i=1
-while(count<2500){
-  up_int = count+49
-  docs_i=matrix(X[count:up_int,],50,num_words)
-  train_mat[i,] = colSums(docs_i)
-  train_mat[i, ]=train_mat[i,]/sum(train_mat[i,])
-  count = count+50
-  i=i+1
-}
-#train_mat=train_mat+smooth_count
-colnames(train_mat) = colnames(X)
-train_mat = t(train_mat)
-filenames = list.dirs(path = 'C50train/', full.names = FALSE, recursive = TRUE)
-filenames = filenames[2:51]
-colnames(train_mat) = filenames
-test_mat = list.files(path = 'C50test/',pattern = ".txt$",full.names = FALSE, recursive = TRUE)
-#test_mat = t(Y)
-rownames(Y) = test_mat
-#smooth_count_test=1/nrow(Y)
-Y=Y+Y
 Y <- Y/rowSums(Y, na.rm = FALSE)
-Y = t(Y)
-tmp1 <- match(rownames(train_mat), rownames(Y) )
-st3 <- cbind( train_mat, Y[tmp1,] )
-smooth_count_combo=1/nrow(st3)
-st3=st3+smooth_count_combo
-c50_train = st3[,1:50]
-c50_test = st3[,51:2550]
-cname = colnames(st3)[1:10]
-f <- as.formula(paste("'AaronPressman/421829newsML.txt'~", paste(sprintf("`%s`", cname), collapse="+")))
- 
 
 
-fit <- randomForest(f,data=st3, importance=TRUE, ntree=2000)
+fnames = list.dirs(path = 'C50train/', full.names = FALSE, recursive = TRUE)[-1]
+
+
+train_mat = t(X)
+fnames_rep = rep(anames, each=50)
+colnames(train_mat) = fnames_rep
+train_df <- as.data.frame(t(train_mat))
+train_df$category <- (rownames(train_df))
+
+
+#test
+
+test_mat = t(Y)
+fnames_rep = rep(anames, each=50)
+colnames(test_mat) = fnames_rep
+test_df <- as.data.frame(t(test_mat))
+test_df$category <- (rownames(test_df))
+
+
+#test_df <- as.data.frame(test_mat)
+
+model <- naive_bayes(category ~ ., data = train_df, laplace = 1)
+
+preds <- predict(model, newdata = test_df)
+conf_mat <- table(preds,train_df$category)
+## sum of diagonals vs sum of everything
+
+conf.mat <- confusionMatrix(preds, train_df$category)
+conf.mat$overall['Accuracy']
 
 
 
-# AP's multinomial probability vector
-# Notice the smoothing factor
-# Why?
-smooth_count = 1/nrow(X)
-w_AP = colSums(AP_train + smooth_count)
-w_AP = w_AP/sum(w_AP)
 
-# AC's multinomial probability vector
-w_AC = colSums(AC_train + smooth_count)
-w_AC = w_AC/sum(w_AC)
+train_filt <- train_df[,colnames(train_df) %in% colnames(test_df)]
+author_train <- train_filt$author 
+train_filt$author <- NULL
 
-# Let's take a specific test document
-x_test = X[49,]
-head(sort(x_test, decreasing=TRUE), 25)
+test_filt <- test_df[,colnames(test_df) %in% colnames(train_df)]
+actual <- test_filt$author
+test_filt$author <- NULL
 
-# Compare log probabilities under the Naive Bayes model
-sum(x_test*log(w_AP))
-sum(x_test*log(w_AC))
 
-# Another test document
-x_test2 = X[99,]
-head(sort(x_test2, decreasing=TRUE), 25)
-sum(x_test2*log(w_AP))
-sum(x_test2*log(w_AC))
+
+rffit = randomForest(~.,data= mat, ntree=5,maxnodes=15)
+importo = sort(rffit$importance, decreasing = FALSE)
+
+
 
