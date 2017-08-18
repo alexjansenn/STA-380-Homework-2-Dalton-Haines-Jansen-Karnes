@@ -48,11 +48,12 @@ my_corpus_train = tm_map(my_corpus_train, content_transformer(removePunctuation)
 my_corpus_train = tm_map(my_corpus_train, content_transformer(stripWhitespace)) ## remove excess white-space
 my_corpus_train = tm_map(my_corpus_train, content_transformer(removeWords), stopwords("SMART"))
 
-#my_corpus_test = tm_map(my_corpus_test, content_transformer(tolower)) # make everything lowercase
-#my_corpus_test = tm_map(my_corpus_test, content_transformer(removeNumbers)) # remove numbers
-#my_corpus_test = tm_map(my_corpus_test, content_transformer(removePunctuation)) # remove punctuation
-#my_corpus_test = tm_map(my_corpus_test, content_transformer(stripWhitespace)) ## remove excess white-space
-#my_corpus_test = tm_map(my_corpus_test, content_transformer(removeWords), stopwords("SMART"))
+#idk if we should be removing these
+my_corpus_test = tm_map(my_corpus_test, content_transformer(tolower)) # make everything lowercase
+my_corpus_test = tm_map(my_corpus_test, content_transformer(removeNumbers)) # remove numbers
+my_corpus_test = tm_map(my_corpus_test, content_transformer(removePunctuation)) # remove punctuation
+my_corpus_test = tm_map(my_corpus_test, content_transformer(stripWhitespace)) ## remove excess white-space
+my_corpus_test = tm_map(my_corpus_test, content_transformer(removeWords), stopwords("SMART"))
 
 
 
@@ -65,7 +66,7 @@ class(DTM_test)  # a special kind of sparse matrix format
 
 ## You can inspect its entries...
 inspect(DTM[1:2500,1:50])
-DTM = removeSparseTerms(DTM, 0.975)
+DTM_train = removeSparseTerms(DTM_train, 0.975)
 DTM
 
 # Now a dense matrix
@@ -75,6 +76,33 @@ row.names(X) = file_list_train
 Y = as.matrix(DTM_test)
 row.names(Y) = file_list_test
 # Naive Bayes: the training sets for the two authors
+
+
+num_words = dim(X)[2]
+train_mat=matrix(0,50,num_words)
+smooth_count=1/nrow(X)
+count=1
+i=1
+while(count<2500){
+  up_int = count+49
+  docs_i=matrix(X[count:up_int,],50,num_words)
+  train_mat[i,] = colSums(docs_i)
+  train_mat[i, ]=train_mat[i,]/sum(train_mat[i,])
+  count = count+50
+  i=i+1
+}
+colnames(train_mat) = colnames(X)
+train_mat = t(train_mat)
+filenames = list.dirs(path = 'C50train/', full.names = FALSE, recursive = TRUE)
+filenames = filenames[2:51]
+colnames(train_mat) = filenames
+test_mat = list.files(path = 'C50test/',pattern = ".txt$",full.names = FALSE, recursive = TRUE)
+#test_mat = t(Y)
+rownames(Y) = test_mat
+Y <- Y/rowSums(Y, na.rm = FALSE)
+Y = t(Y)
+
+
 
 fit <- randomForest(as.factor(Survived) ~ Pclass + Sex + Age + SibSp + Parch + Fare +
                       Embarked + Title + FamilySize + FamilyID2,
