@@ -109,6 +109,7 @@ From the scatter plot above we can see a positive correlation between departure 
 ## Practice with association rule mining
 ```{R, echo = FALSE}
 library(arules)
+library(arulesViz)
 ```
 
 ```{R}
@@ -156,6 +157,30 @@ inspect(rules)
 inspect(subset(rules, subset=lift > 2.4 & confidence > 0.58))
 ```
 
+```{R, echo = FAlSE}
+itemFrequencyPlot(trans, topN = 15)
+summary(rules)
+```
 Overall, when observing a wide range of support, lift, and confidence, we found that the rhs was pretty much always whole milk and other vegetables.  This makes sense as these are both items that are kitchen staples and likely purchased on every grocery run.
 Whole milk is associated with butter and yogurt, which is to be expected as they are all dairy products.
 Lastly, we can see an association in produce where people who purchase root vegetables, citrus fruit, and tropical fruit are 3 times more likely to buy other vegetables. This makes sense as many people who buy these products are interested in health.
+
+```{R}
+# Visualize rules
+plot(rules)
+```
+
+```{R}
+# Plot the rules associated by group
+plot(rules, method = 'grouped')
+```
+
+```{R, echo = FALSE}
+# Create subrules
+subrules <- head(sort(rules, by = 'lift'), 5)
+```
+
+```{R}
+plot(subrules, method = 'graph')
+plot(subrules, method = 'matrix')
+```
