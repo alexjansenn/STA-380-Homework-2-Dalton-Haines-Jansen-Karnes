@@ -107,21 +107,22 @@ From the scatter plot above we can see a positive correlation between departure 
 
 
 ## Practice with association rule mining
+```{R, echo = FALSE}
+library(arules)
+```
 
-
-
-```{r}
+```{R}
 ##read in text file (this was in a webpage format)
 grocery = readLines("groceries.txt")
-library(arules)
+```
 
+```{R}
 ##select lines from file
 mypattern = '<td id="([^<]*)" class="blob-code blob-code-inner js-file-line">([^<]*)</td>'
-
-
 datalines = grep(mypattern,grocery[659:39997],value=TRUE)
+```
 
-
+```{R, echo = FALSE}
 ##parse through to get desired information
 datalines = gsub("<td","",datalines)
 datalines = gsub("id=","",datalines)
@@ -136,10 +137,10 @@ datalines = trimws(datalines, which="left")
 length(datalines)
 
 datalines = strsplit(datalines,",")
+```
 
 
-
-
+```{R}
 ###change to transaction format
 #' arules transactions
 trans = as(datalines, "transactions")
@@ -153,9 +154,8 @@ inspect(rules)
 #We found a threshold of >2.4 for lift allowed us to see the items that increase in likelihood most given their association
 #Confidence of >0.58 showed a strong association and gave us the top end of the confidence spectrum
 inspect(subset(rules, subset=lift > 2.4 & confidence > 0.58))
-
-
 ```
+
 Overall, when observing a wide range of support, lift, and confidence, we found that the rhs was pretty much always whole milk and other vegetables.  This makes sense as these are both items that are kitchen staples and likely purchased on every grocery run.
 Whole milk is associated with butter and yogurt, which is to be expected as they are all dairy products.
 Lastly, we can see an association in produce where people who purchase root vegetables, citrus fruit, and tropical fruit are 3 times more likely to buy other vegetables. This makes sense as many people who buy these products are interested in health.
